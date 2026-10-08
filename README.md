@@ -4,7 +4,7 @@
 [![Dart](https://img.shields.io/badge/Dart-3.13+-0175C2?logo=dart&logoColor=white)](https://dart.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Analyze](https://img.shields.io/badge/flutter%20analyze-passing%20(0%20warnings)-brightgreen)]()
-[![Tests](https://img.shields.io/badge/flutter%20test-24%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/flutter%20test-27%20passed-brightgreen)]()
 
 Ứng dụng di động quản lý chi tiêu cá nhân thông minh và hoàn toàn ngoại tuyến (offline) trên thiết bị dành cho sinh viên, người đi làm và thủ quỹ câu lạc bộ. Ứng dụng cho phép chụp ảnh hóa đơn siêu thị/cửa hàng tiện lợi, tự động bóc tách **Tổng tiền**, **Tên đơn vị bán lẻ** và **Ngày giao dịch** bằng mô hình Google ML Kit Text Recognition kết hợp bộ phân tích heuristic chuyên biệt cho hóa đơn Việt Nam, cho phép người dùng kiểm tra/chỉnh sửa nhanh, lưu vào cơ sở dữ liệu SQLite cục bộ và trực quan hóa chi tiêu thông qua biểu đồ động vẽ thủ công bằng `CustomPainter` (hoàn toàn không dùng thư viện biểu đồ bên thứ ba).
 
@@ -168,19 +168,28 @@ Mini-Project3/
    flutter run
    ```
 
-### Hướng Dẫn Xuất Bản File APK (Android)
+### Hướng Dẫn Đóng Gói & Triển Khai Flutter Web (Cloudflare Pages UI Demo)
 
-Để đóng gói file cài đặt APK Release độc lập cho Android:
+Để xuất bản bản dựng Web dành cho Cloudflare Pages:
 ```bash
-flutter build apk --release
+flutter build web --release
 ```
-File APK cài đặt sẽ được tạo tại đường dẫn: `build/app/outputs/flutter-apk/app-release.apk`.
+* **Thư mục xuất bản (Publish Directory)**: `build/web`
+* **Quy tắc điều hướng SPA (Single Page Application)**: Đã cấu hình sẵn file [`web/_redirects`](file:///d:/DaNenTang/Mini-Project3/web/_redirects) với nội dung `/* /index.html 200`.
+* **Trải nghiệm Demo trên Web**:
+  - Tự động nạp sẵn dữ liệu giao dịch mẫu trải dài tất cả các danh mục (`Food`, `Study`, `Travel`, `Gear`, `Entertainment`, `Other`) giúp hiển thị biểu đồ tròn Donut và biểu đồ cột ngay khi mở app.
+  - Tích hợp bộ giả lập quét OCR (Web OCR Simulator) cho phép chọn các mẫu hóa đơn siêu thị Việt Nam (WinMart, Circle K, Highlands Coffee, Bách Hóa Xanh, Phúc Long) hoặc dán văn bản hóa đơn tùy ý để kiểm thử bộ phân tích `ReceiptParser`.
+  - Cơ sở dữ liệu chạy In-Memory an toàn không phụ thuộc SQLite/native I/O.
 
 ---
 
 ## 🧪 Chi Tiết Bộ Kiểm Thử Tự Động (Unit Tests)
 
-Bộ kiểm thử bao gồm **24 bài kiểm thử** tự động bao phủ toàn diện:
+Bộ kiểm thử bao gồm **27 bài kiểm thử** tự động bao phủ toàn diện:
+- `test/in_memory_repository_test.dart` (3 tests):
+  - Khởi tạo và nạp dữ liệu mẫu web trên toàn bộ danh mục chi tiêu.
+  - Kiểm thử CRUD (thêm, đọc, cập nhật, xóa) trong bộ nhớ.
+  - Kiểm thử các hàm thống kê `sumByCategory`, `sumByDay`, `totalAmount`.
 - `test/receipt_parser_test.dart` (16 tests):
   - Xử lý hóa đơn trống trả về null và độ tin cậy 0%.
   - Hóa đơn WinMart với số tiền phân cách dấu chấm (`77.000 đ`).

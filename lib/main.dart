@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,8 +14,10 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Pre-initialize local database
-  await DatabaseHelper.instance.database;
+  // Pre-initialize local database (native only)
+  if (!kIsWeb) {
+    await DatabaseHelper.instance.database;
+  }
 
   runApp(
     const ProviderScope(

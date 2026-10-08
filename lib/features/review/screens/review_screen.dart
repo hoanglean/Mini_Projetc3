@@ -1,21 +1,27 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:uuid/uuid.dart';
 import '../../../domain/parser/receipt_parser.dart';
 import '../../../domain/entities/parsed_receipt.dart';
 import '../../../domain/entities/category.dart';
 import '../../../data/models/transaction_model.dart';
 import '../../../data/services/image_storage_service.dart';
+import '../../../data/services/ocr/ocr_service.dart';
 import '../../../core/utils/vnd_formatter.dart';
 import '../../transactions/providers/transaction_provider.dart';
 
 /// Screen to review OCR results and edit before saving.
 class ReviewScreen extends ConsumerStatefulWidget {
-  final File imageFile;
+  final File? imageFile;
+  final List<String>? initialLines;
 
-  const ReviewScreen({super.key, required this.imageFile});
+  const ReviewScreen({
+    super.key,
+    this.imageFile,
+    this.initialLines,
+  });
 
   @override
   ConsumerState<ReviewScreen> createState() => _ReviewScreenState();
@@ -28,6 +34,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   final _noteController = TextEditingController();
   final _parser = ReceiptParser();
   final _imageService = ImageStorageService();
+  final _ocrService = ReceiptOcrService();
 
   DateTime _selectedDate = DateTime.now();
   Category _selectedCategory = Category.other;
@@ -51,30 +58,21 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   }
 
   Future<void> _runOcr() async {
-    final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
-
     try {
-      final inputImage = InputImage.fromFile(widget.imageFile);
       final stopwatch = Stopwatch()..start();
+      List<String> lines;
 
-      final recognized = await recognizer.processImage(inputImage);
+      if (widget.initialLines != null) {
+        lines = widget.initialLines!;
+      } else if (widget.imageFile != null) {
+        lines = await _ocrService.recognizeTextFromImage(widget.imageFile);
+      } else {
+        lines = await _ocrService.recognizeTextFromImage(null);
+      }
 
       stopwatch.stop();
       final duration = stopwatch.elapsedMilliseconds;
-      debugPrint('OCR completed in ${duration}ms');
-
-      // Extract lines
-      final lines = <String>[];
-      for (final block in recognized.blocks) {
-        for (final line in block.lines) {
-          lines.add(line.text);
-        }
-      }
-
-      debugPrint('OCR lines: ${lines.length}');
-      for (final line in lines) {
-        debugPrint('  > $line');
-      }
+      debugPrint('OCR completed in ${duration}ms with ${lines.length} lines');
 
       // Parse
       final result = _parser.parse(lines);
@@ -104,8 +102,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           _ocrError = e.toString();
         });
       }
-    } finally {
-      await recognizer.close();
     }
   }
 
@@ -118,11 +114,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       final id = const Uuid().v4();
       final amount = int.tryParse(_amountController.text) ?? 0;
 
-      // Save images
-      final paths = await _imageService.saveReceiptImage(
-        widget.imageFile,
-        id,
-      );
+      // Save images (safely skipped on web)
+      final paths = (!kIsWeb && widget.imageFile != null)
+          ? await _imageService.saveReceiptImage(widget.imageFile!, id)
+          : (imagePath: '', thumbnailPath: '');
 
       final transaction = TransactionModel(
         id: id,
@@ -131,8 +126,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         date: _selectedDate,
         category: _selectedCategory,
         note: _noteController.text.trim(),
-        imagePath: paths.imagePath,
-        thumbnailPath: paths.thumbnailPath,
+        imagePath: paths.imagePath.isNotEmpty ? paths.imagePath : null,
+        thumbnailPath:
+            paths.thumbnailPath.isNotEmpty ? paths.thumbnailPath : null,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -221,16 +217,53 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Image thumbnail
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        widget.imageFile,
-                        height: 180,
+                    // Image thumbnail or web simulated receipt card
+                    if (!kIsWeb && widget.imageFile != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          widget.imageFile!,
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    else
+                      Container(
+                        height: 120,
                         width: double.infinity,
-                        fit: BoxFit.cover,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withAlpha(80),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.receipt_long,
+                              size: 38,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Receipt Data Parsed',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'On-device Heuristic Parser active',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
 
                     if (_ocrError != null) ...[
                       const SizedBox(height: 12),

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/models/transaction_model.dart';
@@ -296,7 +297,9 @@ class _TransactionDetailScreenState
         const SizedBox(height: 24),
 
         // Receipt Image Preview (if available)
-        if (_currentTx.imagePath != null &&
+        if (!kIsWeb &&
+            _currentTx.imagePath != null &&
+            _currentTx.imagePath!.isNotEmpty &&
             File(_currentTx.imagePath!).existsSync()) ...[
           Text(
             'Receipt Photo',

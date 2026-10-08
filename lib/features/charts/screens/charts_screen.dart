@@ -9,23 +9,30 @@ import '../../../core/utils/date_utils.dart';
 
 /// Full charts screen with donut (spending by category) and
 /// weekly bar chart.
-class ChartsScreen extends StatelessWidget {
+class ChartsScreen extends ConsumerWidget {
   const ChartsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(title: const Text('Spending Charts')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: const [
-            _CategoryDonutSection(),
-            SizedBox(height: 32),
-            _WeeklyBarSection(),
-            SizedBox(height: 32),
-          ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(categoryChartDataProvider);
+          ref.invalidate(weeklyChartDataProvider);
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: const [
+              _CategoryDonutSection(),
+              SizedBox(height: 32),
+              _WeeklyBarSection(),
+              SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );

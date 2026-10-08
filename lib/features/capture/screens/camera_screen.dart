@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -6,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../widgets/camera_overlay.dart';
 import '../widgets/capture_button.dart';
 import '../widgets/focus_ring.dart';
+import '../widgets/web_mock_ocr_view.dart';
 import '../../review/screens/review_screen.dart';
 import '../../../data/services/image_storage_service.dart';
 
@@ -33,19 +35,24 @@ class _CameraScreenState extends State<CameraScreen>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _initCamera();
+    if (!kIsWeb) {
+      WidgetsBinding.instance.addObserver(this);
+      _initCamera();
+    }
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _cameraController?.dispose();
+    if (!kIsWeb) {
+      WidgetsBinding.instance.removeObserver(this);
+      _cameraController?.dispose();
+    }
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (kIsWeb) return;
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       return;
     }
@@ -57,6 +64,8 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Future<void> _initCamera() async {
+    if (kIsWeb) return;
+
     final status = await Permission.camera.request();
     if (status.isDenied) {
       setState(() => _permissionDenied = true);
@@ -207,6 +216,10 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return const WebMockOcrView();
+    }
+
     // Permission denied states
     if (_permissionDenied || _permissionPermanentlyDenied) {
       return Scaffold(

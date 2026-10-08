@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../../../data/models/transaction_model.dart';
 import '../../../../core/utils/vnd_formatter.dart';
@@ -46,7 +47,9 @@ class TransactionTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: transaction.imagePath != null &&
+                child: !kIsWeb &&
+                        transaction.imagePath != null &&
+                        transaction.imagePath!.isNotEmpty &&
                         File(transaction.imagePath!).existsSync()
                     ? Stack(
                         fit: StackFit.expand,

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:image/image.dart' as img;
@@ -14,6 +15,11 @@ class ImageStorageService {
     File imageFile,
     String transactionId,
   ) async {
+    // On web, skip local file persistence & thumbnail generation
+    if (kIsWeb) {
+      return (imagePath: '', thumbnailPath: '');
+    }
+
     final appDir = await getApplicationDocumentsDirectory();
 
     // Create directories
@@ -60,6 +66,7 @@ class ImageStorageService {
 
   /// Delete image and thumbnail files for a transaction.
   Future<void> deleteImages(String? imagePath, String? thumbnailPath) async {
+    if (kIsWeb) return;
     if (imagePath != null) {
       final file = File(imagePath);
       if (await file.exists()) await file.delete();
@@ -72,7 +79,7 @@ class ImageStorageService {
 
   /// Load a thumbnail, returning null if the file doesn't exist.
   Future<Uint8List?> loadThumbnail(String? thumbnailPath) async {
-    if (thumbnailPath == null) return null;
+    if (kIsWeb || thumbnailPath == null) return null;
     final file = File(thumbnailPath);
     if (!await file.exists()) return null;
     return await file.readAsBytes();
@@ -86,6 +93,7 @@ class ImageStorageService {
     required int width,
     required int height,
   }) async {
+    if (kIsWeb) return sourceFile;
     final bytes = await sourceFile.readAsBytes();
     final original = img.decodeImage(bytes);
     if (original == null) return sourceFile;

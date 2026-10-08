@@ -120,6 +120,7 @@ final selectedWeekProvider = StateProvider<DateTime>((ref) {
 
 final weeklyChartDataProvider =
     FutureProvider<Map<DateTime, int>>((ref) async {
+  ref.watch(transactionListProvider);
   final selectedDate = ref.watch(selectedWeekProvider);
   final repo = ref.read(transactionRepositoryProvider);
 
@@ -135,6 +136,7 @@ final weeklyChartDataProvider =
 
 final categoryChartDataProvider =
     FutureProvider<Map<Category, int>>((ref) async {
+  ref.watch(transactionListProvider);
   final repo = ref.read(transactionRepositoryProvider);
   final now = DateTime.now();
   final startOfMonth = DateTime(now.year, now.month, 1);
@@ -142,3 +144,4 @@ final categoryChartDataProvider =
   return await repo.sumByCategory(
       startDate: startOfMonth, endDate: endOfMonth);
 });
+
